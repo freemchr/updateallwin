@@ -263,6 +263,25 @@ public class EngineTests
     }
 
     [Fact]
+    public async Task Update_still_listed_after_installing_is_not_installed_again()
+    {
+        // HPIA keeps recommending some SoftPaqs after they install (it checks a different component).
+        var adapter = new ScriptedAdapter("hp", AdapterCapabilities.InstallIndividual,
+            ScriptedAdapter.Update("hp", "sp165987", UpdateCategory.Driver));
+        using var f = new EngineFixture(new MachinePolicy(), adapter);
+
+        await Run(f, OperationKind.UpdateAll);
+        var second = await Run(f, OperationKind.UpdateAll);
+
+        Assert.Single(adapter.InstallCalls);
+        var update = Assert.Single(f.Engine.GetStatus().Updates);
+        Assert.Equal(UpdateState.Installed, update.State);
+        Assert.Contains("won't be installed again", update.StatusMessage);
+        Assert.Equal(OverallStatus.UpToDate, f.Engine.GetStatus().Overall);
+        Assert.Equal("Your PC is up to date", second!.Message);
+    }
+
+    [Fact]
     public async Task By_category_tool_installs_the_whole_category()
     {
         var adapter = new ScriptedAdapter("bycat", AdapterCapabilities.InstallByCategory,

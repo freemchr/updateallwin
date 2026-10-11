@@ -135,7 +135,25 @@ public sealed class WindowsSystemSafety(ILogger<WindowsSystemSafety> logger) : I
 
     public IDisposable PreventSleep(string reason) => new PowerRequest(reason, logger);
 
-    public DateTime GetBootTimeUtc() => DateTime.UtcNow - TimeSpan.FromMilliseconds(Environment.TickCount64);
+    /// <summary>
+    /// The real boot time from WMI. Environment.TickCount64 stops while the PC sleeps (Modern Standby),
+    /// so "now minus uptime" drifts later after every sleep and looked like a restart had happened.
+    /// </summary>
+    public DateTime GetBootTimeUtc()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT LastBootUpTime FROM Win32_OperatingSystem");
+            foreach (var os in searcher.Get())
+                using (os)
+                    return ManagementDateTimeConverter.ToDateTime((string)os["LastBootUpTime"]).ToUniversalTime();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Couldn't read the boot time from WMI");
+        }
+        return DateTime.UtcNow - TimeSpan.FromMilliseconds(Environment.TickCount64);
+    }
 
     public void RestartComputer(int delaySeconds, string message)
     {

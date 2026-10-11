@@ -52,6 +52,7 @@ public sealed class UpdateEngine : IDisposable
     private const string KeyRestartSince = "restart.pendingSinceUtc";
     private const string KeyRestartBoot = "restart.bootTimeUtc";
     private const string KeyRestartDeferrals = "restart.deferrals";
+    private const int AlreadyInstalledDays = 30;
 
     private readonly IReadOnlyList<IManufacturerAdapter> _allAdapters;
     private readonly IPolicyStore _policies;
@@ -369,6 +370,7 @@ public sealed class UpdateEngine : IDisposable
         }
 
         var visible = ApplyScanPolicy(found, policy);
+        MarkAlreadyInstalled(visible);
         lock (_sync)
         {
             _updates = visible;
@@ -381,7 +383,7 @@ public sealed class UpdateEngine : IDisposable
         if (anySucceeded) _state.Set(KeyLastSuccess, now.ToString("O"));
         _lastError = errors.Count > 0 ? string.Join(Environment.NewLine, errors) : null;
 
-        var count = visible.Count(u => u.State != UpdateState.Excluded);
+        var count = visible.Count(u => u.State is UpdateState.Available or UpdateState.AwaitingApproval);
         var message = !anySucceeded ? "Couldn't check for updates"
             : count == 0 ? "Your PC is up to date"
             : $"{count} update{(count == 1 ? "" : "s")} available";
@@ -824,6 +826,28 @@ public sealed class UpdateEngine : IDisposable
             "Your PC will restart to apply the BIOS update. Do not turn it off or unplug it until Windows has started again."));
 
         return new BiosSafetyReport { CanProceed = checks.All(c => c.Result != SafetyCheckResult.Fail), Checks = checks };
+    }
+
+    /// <summary>
+    /// Some vendor tools keep recommending an update after it installs successfully, because they
+    /// check a different component's version (seen with HPIA: HP Services Scan, Intel ME). Don't
+    /// reinstall the same package version again and again: show it as installed instead.
+    /// </summary>
+    private void MarkAlreadyInstalled(List<DetectedUpdate> updates)
+    {
+        var since = _time.GetUtcNow().UtcDateTime.AddDays(-AlreadyInstalledDays);
+        var installed = _history.Query(2000, HistoryKind.Install)
+            .Where(e => e.Success && e.UpdateKey is { Length: > 0 } && e.TimeUtc >= since)
+            .GroupBy(e => e.UpdateKey!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Max(e => e.TimeUtc), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var u in updates.Where(u => u.State is UpdateState.Available or UpdateState.AwaitingApproval))
+        {
+            if (!installed.TryGetValue(u.Key, out var when)) continue;
+            u.State = UpdateState.Installed;
+            u.StatusMessage = $"Installed {when.ToLocalTime():d MMM}. {u.Source} still lists it, so it won't be installed again. " +
+                              "If it keeps appearing after a restart, the manufacturer's check isn't seeing the new version.";
+        }
     }
 
     // ------------------------------------------------------------------ restart tracking
