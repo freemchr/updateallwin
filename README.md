@@ -2,12 +2,46 @@
 
 **One app. Every driver. Always up to date.**
 
+**Version 1.0.0 (preview)** · Windows 10 (19041) / Windows 11 · x64 · [Changelog](CHANGELOG.md)
+
+> **What is it?** A free Windows app that keeps your PC's drivers, BIOS and firmware up to date with
+> one click. It doesn't download drivers from random websites: it runs your PC maker's own official
+> update tool (HP Image Assistant, Dell Command | Update, Lenovo System Update) in the background,
+> or Windows Update for other brands. Then it shows you what changed and asks before anything risky,
+> like a BIOS update or a restart.
+
 UpdateAll Win is a native Windows 11 app that keeps a PC's **drivers, BIOS and firmware** current. It
 works out who made the PC and drives that manufacturer's official update tool. The core feature is a
 small floating **Update All** toolbar: one click checks the PC and installs everything that's safe to
 install. Nothing else needs choosing.
 
 ![UpdateAll Win dashboard](docs/images/dashboard-light.png)
+
+## Project status
+
+1.0.0 is a **preview**: the app, service, installer and safety checks are complete, and the HP path has
+been run for real on one HP laptop. Dell and Lenovo haven't been tried on real hardware yet.
+
+| Area | Status |
+|---|---|
+| App, toolbar, tray icon, MSI installer | ✅ Installed and used on Windows 11 (HP Elite x360 1040 G11) |
+| HP Image Assistant: scan, download, install | ✅ Real run: 3 HP SoftPaqs installed (exit 3010, restart required) |
+| HP: confirming after the restart that the updates are gone | ⏳ Pending |
+| Dell Command \| Update, Lenovo System Update | ⚠️ Written to vendor docs, not tested on hardware |
+| Windows Update fallback | ⚠️ Not tested on a non-HP/Dell/Lenovo PC |
+| Code signing | ⚠️ Not set up (needs a certificate) |
+
+Details: [`docs/testing.md`](docs/testing.md).
+
+## Installing
+
+1. Build the MSI (see *Building*), or download it from the CI build's artifacts.
+2. Run `UpdateAllWin-1.0.0-x64.msi` and approve the admin prompt. This installs the app to
+   `C:\Program Files\UpdateAll Win` and starts the **UpdateAll Win Service**.
+3. Open **UpdateAll Win** from the Start menu, or use the floating **Update All** toolbar.
+   The toolbar's **×** hides it; get it back from the tray icon menu or **Settings**.
+
+The MSI isn't signed yet, so Windows SmartScreen may warn you the first time.
 
 ## What's in the box
 
@@ -25,7 +59,7 @@ install. Nothing else needs choosing.
 
 | Manufacturer | Tool used | How updates install | Status |
 |---|---|---|---|
-| **HP** | HP Image Assistant (downloaded automatically from HP and verified as signed by HP Inc.) | Per SoftPaq (`/SPList`) | Scan verified on an HP Elite x360 1040 G11 (HPIA 5.3.7 downloaded, signature checked, 3 updates found). **Installs not yet run on hardware** (see *Testing*). |
+| **HP** | HP Image Assistant (downloaded automatically from HP and verified as signed by HP Inc.) | Per SoftPaq (`/SPList`) | **Verified** on an HP Elite x360 1040 G11 with HPIA 5.3.7: scan, download and install of 3 SoftPaqs. BIOS updates through HPIA not yet tried. |
 | **Dell** | Dell Command \| Update CLI (installed with winget if missing) | Per category (DCU filters by type, not by single update) | Written to Dell's 5.x CLI reference. **Not tested on Dell hardware.** |
 | **Lenovo** | Commercial Vantage + SU Helper if present, otherwise Lenovo System Update | SU Helper: per category, plus approved BIOS by package ID. System Update: one combined run (it has no silent list mode). | Written to Lenovo CDRT docs. **Not tested on Lenovo hardware.** |
 | **Everyone else** (ASUS, Acer, MSI, Surface…) | Windows Update driver and firmware updates | Per update | Uses the documented Windows Update Agent API. |
