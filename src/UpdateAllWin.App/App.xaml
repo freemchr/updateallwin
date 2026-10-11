@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="UpdateAllWin.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <!-- UpdateAll Win brand: blue primary, teal accent -->
+                    <Color x:Key="SystemAccentColor">#1565D8</Color>
+                    <Color x:Key="SystemAccentColorLight1">#2F7BEA</Color>
+                    <Color x:Key="SystemAccentColorLight2">#5A98F0</Color>
+                    <Color x:Key="SystemAccentColorLight3">#8DB8F5</Color>
+                    <Color x:Key="SystemAccentColorDark1">#0F55BD</Color>
+                    <Color x:Key="SystemAccentColorDark2">#0B459C</Color>
+                    <Color x:Key="SystemAccentColorDark3">#08367A</Color>
+                    <SolidColorBrush x:Key="BrandBlueBrush" Color="#1565D8" />
+                    <SolidColorBrush x:Key="BrandTealBrush" Color="#0EA5A4" />
+                    <SolidColorBrush x:Key="IconTileBrush" Color="#EAF2FF" />
+                    <SolidColorBrush x:Key="RestartBannerBrush" Color="#FFF7E6" />
+                    <SolidColorBrush x:Key="RestartBannerStrokeBrush" Color="#FDE3B0" />
+                    <SolidColorBrush x:Key="RowDividerBrush" Color="#0F000000" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SystemAccentColor">#4C8DF6</Color>
+                    <Color x:Key="SystemAccentColorLight1">#6AA2F8</Color>
+                    <Color x:Key="SystemAccentColorLight2">#8DB8FA</Color>
+                    <Color x:Key="SystemAccentColorLight3">#B2CEFC</Color>
+                    <Color x:Key="SystemAccentColorDark1">#2F7BEA</Color>
+                    <Color x:Key="SystemAccentColorDark2">#1565D8</Color>
+                    <Color x:Key="SystemAccentColorDark3">#0F55BD</Color>
+                    <SolidColorBrush x:Key="BrandBlueBrush" Color="#6AA2F8" />
+                    <SolidColorBrush x:Key="BrandTealBrush" Color="#2DD4BF" />
+                    <SolidColorBrush x:Key="IconTileBrush" Color="#1F2A3D" />
+                    <SolidColorBrush x:Key="RestartBannerBrush" Color="#3A2E14" />
+                    <SolidColorBrush x:Key="RestartBannerStrokeBrush" Color="#5C4A1F" />
+                    <SolidColorBrush x:Key="RowDividerBrush" Color="#18FFFFFF" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="24,20" />
+            </Style>
+
+            <Style x:Key="CardTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+                <Setter Property="FontSize" Value="17" />
+            </Style>
+
+            <Style x:Key="SecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Style>
+
+            <Style x:Key="ColumnHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+
+            <Style x:Key="PageTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+                <Setter Property="Margin" Value="0,0,0,4" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

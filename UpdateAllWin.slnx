@@ -1,0 +1,16 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/UpdateAllWin.Contracts/UpdateAllWin.Contracts.csproj" />
+    <Project Path="src/UpdateAllWin.Core/UpdateAllWin.Core.csproj" />
+    <Project Path="src/UpdateAllWin.ManufacturerAdapters/UpdateAllWin.ManufacturerAdapters.csproj" />
+    <Project Path="src/UpdateAllWin.Service/UpdateAllWin.Service.csproj" />
+    <Project Path="src/UpdateAllWin.Toolbar/UpdateAllWin.Toolbar.csproj" />
+    <Project Path="src/UpdateAllWin.App/UpdateAllWin.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UpdateAllWin.Tests/UpdateAllWin.Tests.csproj" />
+  </Folder>
+</Solution>

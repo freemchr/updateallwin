@@ -1,0 +1,98 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="UpdateAll Win"
+           Manufacturer="UpdateAll Win"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="7C1B9E5A-3D2F-4C8B-9A61-2E4F5D7A9B10"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <SummaryInformation Description="UpdateAll Win - drivers, BIOS and firmware updates from your PC manufacturer" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of UpdateAll Win is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.PublishDir)Assets\UpdateAllWin.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <!-- "Delete settings and history when uninstalling" is mirrored to the registry by the service.
+         Can also be forced from the command line: msiexec /x UpdateAllWin.msi REMOVEDATA=#1 -->
+    <Property Id="REMOVEDATA" Secure="yes">
+      <RegistrySearch Id="RemoveDataPreference" Root="HKLM" Key="SOFTWARE\UpdateAllWin" Name="RemoveDataOnUninstall" Type="raw" Bitness="always64" />
+    </Property>
+    <SetProperty Id="DATAFOLDER" Value="[CommonAppDataFolder]UpdateAllWin" Before="CostInitialize" Sequence="execute"
+                 Condition="REMOVE=&quot;ALL&quot; AND REMOVEDATA=&quot;#1&quot;" />
+
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="UpdateAll Win" />
+    </StandardDirectory>
+
+    <!-- Everything published (app + service + runtime), except the service exe which needs its own component. -->
+    <ComponentGroup Id="ProductFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)**">
+        <Exclude Files="$(var.PublishDir)UpdateAllService.exe" />
+        <Exclude Files="$(var.PublishDir)**\*.pdb" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- UpdateAllService: LocalSystem, delayed automatic start, restarts itself on failure. -->
+    <Component Id="ServiceComponent" Directory="INSTALLFOLDER">
+      <File Id="ServiceExe" Source="$(var.PublishDir)UpdateAllService.exe" KeyPath="yes" />
+      <ServiceInstall Id="InstallService"
+                      Name="UpdateAllService"
+                      DisplayName="UpdateAll Win Service"
+                      Description="Checks for and installs driver, BIOS and firmware updates using your PC manufacturer's tools."
+                      Type="ownProcess"
+                      Start="auto"
+                      Account="LocalSystem"
+                      ErrorControl="normal"
+                      Vital="yes">
+        <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart"
+                            RestartServiceDelayInSeconds="60" ResetPeriodInDays="1" />
+      </ServiceInstall>
+      <ServiceControl Id="ControlService" Name="UpdateAllService" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <!-- Toolbar + notification-area agent for every user at sign-in (users can turn it off in Settings). -->
+    <Component Id="StartupEntry" Directory="INSTALLFOLDER">
+      <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="UpdateAllWin"
+                     Type="string" Value="&quot;[INSTALLFOLDER]UpdateAllWin.exe&quot; --background" KeyPath="yes" />
+    </Component>
+
+    <Component Id="StartMenuShortcuts" Directory="ProgramMenuFolder">
+      <Shortcut Id="AppShortcut" Name="UpdateAll Win" Description="Driver, BIOS and firmware updates"
+                Target="[INSTALLFOLDER]UpdateAllWin.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <Shortcut Id="UpdateAllShortcut" Name="Update All" Description="Check for and install all updates now"
+                Target="[INSTALLFOLDER]UpdateAllWin.exe" Arguments="--update-all" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <RegistryValue Root="HKLM" Key="SOFTWARE\UpdateAllWin\Installer" Name="StartMenuShortcuts" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder">
+      <Shortcut Id="DesktopUpdateAll" Name="UpdateAll Win" Description="Driver, BIOS and firmware updates"
+                Target="[INSTALLFOLDER]UpdateAllWin.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon.ico" />
+      <RegistryValue Root="HKLM" Key="SOFTWARE\UpdateAllWin\Installer" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- Uninstall clean-up: registry always; %ProgramData%\UpdateAllWin only when the user chose to delete data. -->
+    <Component Id="Cleanup" Directory="INSTALLFOLDER">
+      <RegistryValue Root="HKLM" Key="SOFTWARE\UpdateAllWin\Installer" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      <RemoveRegistryKey Root="HKLM" Key="SOFTWARE\UpdateAllWin" Action="removeOnUninstall" />
+      <util:RemoveFolderEx On="uninstall" Property="DATAFOLDER" />
+    </Component>
+
+    <Feature Id="Main" Title="UpdateAll Win" Level="1">
+      <ComponentGroupRef Id="ProductFiles" />
+      <ComponentRef Id="ServiceComponent" />
+      <ComponentRef Id="StartupEntry" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="Cleanup" />
+    </Feature>
+  </Package>
+</Wix>

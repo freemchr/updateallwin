@@ -1,0 +1,22 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    Builds UpdateAllWin-<version>-x64.msi from the published app + service (build/build.ps1 publishes
+    both into artifacts\publish first). Build on Windows: dotnet build -c Release
+  -->
+  <PropertyGroup>
+    <OutputName>UpdateAllWin-$(Version)-x64</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\</PublishDir>
+    <!-- PublishDir may arrive as a global property (can't be modified), so normalise into a new one. -->
+    <PayloadDir>$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))</PayloadDir>
+    <DefineConstants>PublishDir=$(PayloadDir);ProductVersion=$(Version)</DefineConstants>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\</OutputPath>
+    <!-- Not a .NET project: switch off settings inherited from Directory.Build.props. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

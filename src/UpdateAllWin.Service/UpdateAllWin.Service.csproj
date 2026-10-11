@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(WindowsTfm)</TargetFramework>
+    <AssemblyName>UpdateAllService</AssemblyName>
+    <RootNamespace>UpdateAllWin.Service</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\UpdateAllWin.App\Assets\UpdateAllWin.ico</ApplicationIcon>
+    <UserSecretsId>dotnet-UpdateAllService</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UpdateAllWin.ManufacturerAdapters\UpdateAllWin.ManufacturerAdapters.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.12" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="UpdateAllWin.Tests" />
+  </ItemGroup>
+</Project>
