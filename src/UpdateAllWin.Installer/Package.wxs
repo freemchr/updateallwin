@@ -59,7 +59,7 @@
       <ServiceControl Id="ControlService" Name="UpdateAllService" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
     </Component>
 
-    <!-- Toolbar + notification-area agent for every user at sign-in (users can turn it off in Settings). -->
+    <!-- Notification-area agent for every user at sign-in. -->
     <Component Id="StartupEntry" Directory="INSTALLFOLDER">
       <RegistryValue Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run" Name="UpdateAllWin"
                      Type="string" Value="&quot;[INSTALLFOLDER]UpdateAllWin.exe&quot; --background" KeyPath="yes" />

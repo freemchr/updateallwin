@@ -21,10 +21,6 @@
                     <Color x:Key="SystemAccentColorDark3">#08367A</Color>
                     <SolidColorBrush x:Key="BrandBlueBrush" Color="#1565D8" />
                     <SolidColorBrush x:Key="BrandTealBrush" Color="#0EA5A4" />
-                    <SolidColorBrush x:Key="IconTileBrush" Color="#EAF2FF" />
-                    <SolidColorBrush x:Key="RestartBannerBrush" Color="#FFF7E6" />
-                    <SolidColorBrush x:Key="RestartBannerStrokeBrush" Color="#FDE3B0" />
-                    <SolidColorBrush x:Key="RowDividerBrush" Color="#0F000000" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <Color x:Key="SystemAccentColor">#4C8DF6</Color>
@@ -36,10 +32,6 @@
                     <Color x:Key="SystemAccentColorDark3">#0F55BD</Color>
                     <SolidColorBrush x:Key="BrandBlueBrush" Color="#6AA2F8" />
                     <SolidColorBrush x:Key="BrandTealBrush" Color="#2DD4BF" />
-                    <SolidColorBrush x:Key="IconTileBrush" Color="#1F2A3D" />
-                    <SolidColorBrush x:Key="RestartBannerBrush" Color="#3A2E14" />
-                    <SolidColorBrush x:Key="RestartBannerStrokeBrush" Color="#5C4A1F" />
-                    <SolidColorBrush x:Key="RowDividerBrush" Color="#18FFFFFF" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
@@ -51,21 +43,18 @@
                 <Setter Property="Padding" Value="24,20" />
             </Style>
 
-            <Style x:Key="CardTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
-                <Setter Property="FontSize" Value="17" />
-            </Style>
-
             <Style x:Key="SecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             </Style>
 
-            <Style x:Key="ColumnHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Style x:Key="DetailLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-                <Setter Property="FontSize" Value="13" />
+                <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
 
-            <Style x:Key="PageTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
-                <Setter Property="Margin" Value="0,0,0,4" />
+            <Style x:Key="DetailValueStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>

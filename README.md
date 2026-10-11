@@ -11,11 +11,11 @@
 > like a BIOS update or a restart.
 
 UpdateAll Win is a native Windows 11 app that keeps a PC's **drivers, BIOS and firmware** current. It
-works out who made the PC and drives that manufacturer's official update tool. The core feature is a
-small floating **Update All** toolbar: one click checks the PC and installs everything that's safe to
+works out who made the PC and drives that manufacturer's official update tool. It's one small window
+with one **Update All** button: one click checks the PC and installs everything that's safe to
 install. Nothing else needs choosing.
 
-![UpdateAll Win dashboard](docs/images/dashboard-light.png)
+![UpdateAll Win](docs/images/main-window.png)
 
 ## Project status
 
@@ -24,7 +24,7 @@ been run for real on one HP laptop. Dell and Lenovo haven't been tried on real h
 
 | Area | Status |
 |---|---|
-| App, toolbar, tray icon, MSI installer | ✅ Installed and used on Windows 11 (HP Elite x360 1040 G11) |
+| App, tray icon, MSI installer | ✅ Installed and used on Windows 11 (HP Elite x360 1040 G11) |
 | HP Image Assistant: scan, download, install | ✅ Real run: 3 HP SoftPaqs installed (exit 3010, restart required) |
 | HP: confirming after the restart that the updates are gone | ⏳ Pending |
 | Dell Command \| Update, Lenovo System Update | ⚠️ Written to vendor docs, not tested on hardware |
@@ -38,8 +38,7 @@ Details: [`docs/testing.md`](docs/testing.md).
 1. Build the MSI (see *Building*), or download it from the CI build's artifacts.
 2. Run `UpdateAllWin-1.0.0-x64.msi` and approve the admin prompt. This installs the app to
    `C:\Program Files\UpdateAll Win` and starts the **UpdateAll Win Service**.
-3. Open **UpdateAll Win** from the Start menu, or use the floating **Update All** toolbar.
-   The toolbar's **×** hides it; get it back from the tray icon menu or **Settings**.
+3. Open **UpdateAll Win** from the Start menu or the tray icon and click **Update All**.
 
 The MSI isn't signed yet, so Windows SmartScreen may warn you the first time.
 
@@ -47,13 +46,16 @@ The MSI isn't signed yet, so Windows SmartScreen may warn you the first time.
 
 | Part | What it does |
 |---|---|
-| **UpdateAll Win app** (WinUI 3) | The Dashboard, Available Updates, History, Automation and Settings pages. Fluent design, light and dark themes, your logo. |
-| **Floating toolbar** | A draggable, always-on-top **Update All** button. It shows status with a coloured dot: 🟢 up to date · 🔵 working · 🟠 updates available · 🔴 failed · 🟡 restart required. Right-click for more options. |
-| **Notification-area icon** | The same status colours and menu, available whenever you're signed in. |
+| **UpdateAll Win app** (WinUI 3) | One window: your PC maker's logo, a plain-English status, one **Update All** button (or **Restart Now / Restart Later** when needed), your machine's details, and a **What was installed** list. Light and dark themes. |
+| **Notification-area icon** | Shows status with a coloured icon: 🟢 up to date · 🔵 working · 🟠 updates available · 🔴 failed · 🟡 restart required. Right-click for **Update All** and more. |
 | **Windows notifications** | *Restart required*, with **Restart Now / Restart Later / Open UpdateAll Win**. Also BIOS approval requests, failures, and updates found by a scheduled scan. |
 | **UpdateAllService** | A LocalSystem Windows service that does all the privileged work: scheduled scans, downloads and installs. It keeps working when the app is closed. |
 | **Command line** | `UpdateAllService.exe status \| scan \| update-all \| history \| export-diagnostics` for Intune, RMM and scripts, with standard exit codes. |
 | **MSI installer** | Installs everything and registers the service, shortcuts and the sign-in agent. Uninstalls cleanly. |
+
+**What was installed** lists every update with its old and new version:
+
+![What was installed](docs/images/what-was-installed.png)
 
 ## Manufacturer support
 
@@ -98,10 +100,10 @@ UpdateAllWin.slnx
 ├─ src/UpdateAllWin.Core                Engine, safety checks, scheduling, SQLite history, logging
 ├─ src/UpdateAllWin.ManufacturerAdapters HP · Dell · Lenovo · Windows Update · Simulated
 ├─ src/UpdateAllWin.Service             UpdateAllService (Windows service) + command line
-├─ src/UpdateAllWin.Toolbar             Floating toolbar, tray icon, notifications, status monitor
+├─ src/UpdateAllWin.Toolbar             Tray icon, notifications, status monitor
 ├─ src/UpdateAllWin.App                 WinUI 3 app (UpdateAllWin.exe)
 ├─ src/UpdateAllWin.Installer           WiX 5 MSI
-└─ tests/UpdateAllWin.Tests             58 unit + integration tests (mock adapters, real pipes and SQLite)
+└─ tests/UpdateAllWin.Tests             60 unit + integration tests (mock adapters, real pipes and SQLite)
 ```
 
 To add a manufacturer, implement `IManufacturerAdapter` and register it in
@@ -120,8 +122,8 @@ Per-user preferences are in `%LocalAppData%\UpdateAllWin\preferences.json`.
 ### Taskbar integration
 
 Windows 11 has **no supported way** to embed a toolbar in the taskbar (deskbands were removed and
-Explorer injection isn't acceptable). UpdateAll Win uses the supported options instead: the floating
-toolbar, the notification-area icon, notifications, and Start menu / desktop **Update All** shortcuts.
+Explorer injection isn't acceptable). UpdateAll Win uses the supported options instead: the
+notification-area icon, notifications, and Start menu / desktop **Update All** shortcuts.
 
 ## Building
 
@@ -136,8 +138,8 @@ Output goes to `artifacts\installer\UpdateAllWin-1.0.0-x64.msi`. You can also de
 `build/wsl-build.sh` mirrors the repo to the Windows side and runs `dotnet` there.
 
 **Try it without touching real firmware:** set `"simulationMode": true` in
-`%ProgramData%\UpdateAllWin\policy.json`, or use **Settings → Simulation mode**. Then pick a scenario:
-updates available, up to date, download failure, install failure or no network.
+`%ProgramData%\UpdateAllWin\policy.json` (as an administrator) and restart the service. Pick a scenario with `"simulationScenario"`:
+`UpdatesAvailable`, `UpToDate`, `DownloadFailure`, `InstallFailure` or `NetworkDown`.
 
 ## Command line
 

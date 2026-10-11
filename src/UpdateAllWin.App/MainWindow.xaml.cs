@@ -2,7 +2,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using UpdateAllWin.App.Pages;
+using UpdateAllWin.App.Dialogs;
 using UpdateAllWin.App.ViewModels;
 using UpdateAllWin.Toolbar;
 using Windows.Graphics;
@@ -18,16 +18,16 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon(Path.Combine(App.AssetsFolder, "UpdateAllWin.ico"));
         SystemBackdrop = new MicaBackdrop();
 
         var scale = WindowScale.For(this);
-        AppWindow.Resize(new SizeInt32((int)(1180 * scale), (int)(820 * scale)));
+        AppWindow.Resize(new SizeInt32((int)(600 * scale), (int)(560 * scale)));
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.PreferredMinimumWidth = (int)(940 * scale);
-            presenter.PreferredMinimumHeight = (int)(640 * scale);
+            presenter.IsMaximizable = false;
+            presenter.PreferredMinimumWidth = (int)(480 * scale);
+            presenter.PreferredMinimumHeight = (int)(460 * scale);
         }
         CenterOnScreen();
 
@@ -37,7 +37,6 @@ public sealed partial class MainWindow : Window
         RootGrid.ActualThemeChanged += (_, _) => ApplyTheme(UserPreferences.Current.Theme);
 
         AppWindow.Closing += OnClosing;
-        ContentFrame.Navigate(typeof(DashboardPage));
     }
 
     public MainViewModel ViewModel => App.ViewModel;
@@ -49,16 +48,21 @@ public sealed partial class MainWindow : Window
         Activate();
     }
 
-    /// <summary>"dashboard", "updates", "updates:bios", "history", "automation", "settings".</summary>
-    public void Navigate(string page)
+    /// <summary>Opens a dialog for a deep link: "history" (what was installed) or "updates" (BIOS review).</summary>
+    public async void Navigate(string page)
     {
-        var parts = page.Split(':', 2);
-        var tag = parts[0].ToLowerInvariant();
-        var item = Nav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag);
-        if (item is null) return;
-        if (parts.Length > 1) ViewModel.SetFilter(parts[1]);
-        else if (tag == "updates") ViewModel.SetFilter("all");
-        Nav.SelectedItem = item;
+        if (!RootGrid.IsLoaded)
+        {
+            // Just created: wait until the window has a XamlRoot to host dialogs.
+            RoutedEventHandler? onLoaded = null;
+            onLoaded = (_, _) => { RootGrid.Loaded -= onLoaded; Navigate(page); };
+            RootGrid.Loaded += onLoaded;
+            return;
+        }
+        if (page.StartsWith("history", StringComparison.OrdinalIgnoreCase))
+            await AppDialogs.ShowInstalledAsync(Content.XamlRoot, await ViewModel.GetInstalledAsync());
+        else if (page.StartsWith("updates", StringComparison.OrdinalIgnoreCase) && ViewModel.ShowReview)
+            await InstallFlow.ReviewAwaitingAsync(Content.XamlRoot, ViewModel);
     }
 
     public void CloseForExit()
@@ -67,25 +71,12 @@ public sealed partial class MainWindow : Window
         Close();
     }
 
-    private void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-    {
-        var type = ((args.SelectedItem as NavigationViewItem)?.Tag as string) switch
-        {
-            "updates" => typeof(UpdatesPage),
-            "history" => typeof(HistoryPage),
-            "automation" => typeof(AutomationPage),
-            "settings" => typeof(SettingsPage),
-            _ => typeof(DashboardPage),
-        };
-        if (ContentFrame.CurrentSourcePageType != type) ContentFrame.Navigate(type);
-    }
-
     private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_allowClose) return;
         if (UserPreferences.Current.MinimizeToTray)
         {
-            // Keep running in the notification area; the toolbar and notifications stay available.
+            // Keep running in the notification area; the tray icon and notifications stay available.
             args.Cancel = true;
             AppWindow.Hide();
             App.Instance?.OnMainWindowHidden();
@@ -105,7 +96,6 @@ public sealed partial class MainWindow : Window
             AppTheme.Dark => ElementTheme.Dark,
             _ => ElementTheme.Default,
         };
-        App.Instance?.Agent.ApplyTheme(theme);
 
         // Caption buttons don't follow RequestedTheme on their own; colour them to match.
         var dark = RootGrid.ActualTheme == ElementTheme.Dark;
@@ -148,4 +138,22 @@ public sealed partial class MainWindow : Window
     }
 
     private async void RestartLater_Click(object sender, RoutedEventArgs e) => await ViewModel.RestartLaterAsync();
+
+    private async void UpdateAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (await ViewModel.UpdateAllAsync() is { } error) await AppDialogs.ShowErrorAsync(Content.XamlRoot, "UpdateAll Win", error);
+    }
+
+    private async void Cancel_Click(object sender, RoutedEventArgs e) => await ViewModel.CancelAsync();
+
+    private async void Review_Click(object sender, RoutedEventArgs e) => await InstallFlow.ReviewAwaitingAsync(Content.XamlRoot, ViewModel);
+
+    private async void ShowInstalled_Click(object sender, RoutedEventArgs e) =>
+        await AppDialogs.ShowInstalledAsync(Content.XamlRoot, await ViewModel.GetInstalledAsync());
+
+    private void ToggleSerial_Click(object sender, RoutedEventArgs e)
+    {
+        UserPreferences.Current.ShowSerialNumber = !UserPreferences.Current.ShowSerialNumber;
+        UserPreferences.Current.Save();
+    }
 }

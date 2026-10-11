@@ -104,35 +104,72 @@ public static class AppDialogs
         }.Themed(root).ShowAsync();
     }
 
-    public static async Task ShowHistoryDetailsAsync(XamlRoot root, HistoryItemViewModel item)
+    /// <summary>"What was installed": every update the service tried to install, newest first, grouped by day.</summary>
+    public static async Task ShowInstalledAsync(XamlRoot root, IReadOnlyList<HistoryEntry> entries)
     {
-        var e = item.Entry;
-        var lines = new List<string>
+        var panel = new StackPanel { Spacing = 10, MinWidth = 440 };
+        if (entries.Count == 0)
+            panel.Children.Add(new TextBlock { Text = "Nothing has been installed yet.", TextWrapping = TextWrapping.Wrap });
+
+        foreach (var day in entries.GroupBy(e => e.TimeUtc.ToLocalTime().Date))
         {
-            $"Result: {e.Result}",
-            $"When: {item.Time}",
-        };
-        if (item.TriggerText.Length > 0) lines.Add($"Started by: {item.TriggerText}");
-        if (e.Category is { } c) lines.Add($"Category: {Format.CategoryText(c)}");
-        if (item.Versions.Length > 0) lines.Add($"Version: {item.Versions}");
-        if (e.AdapterId is { Length: > 0 }) lines.Add($"Source: {e.AdapterId}");
-        if (e.ExitCode is { } code) lines.Add($"Exit code: {code}");
-        if (e.Details is { Length: > 0 }) lines.Add($"\n{e.Details}");
+            panel.Children.Add(new TextBlock
+            {
+                Text = day.Key == DateTime.Today ? "Today" : day.Key == DateTime.Today.AddDays(-1) ? "Yesterday" : day.Key.ToString("dddd d MMMM yyyy"),
+                Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+                Margin = new Thickness(0, 8, 0, 0),
+            });
+            foreach (var e in day)
+            {
+                var row = new Grid
+                {
+                    ColumnSpacing = 12,
+                    ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition(), new ColumnDefinition { Width = GridLength.Auto } },
+                };
+                row.Children.Add(new FontIcon
+                {
+                    Glyph = e.Success ? "\uE73E" : "\uE711",
+                    FontSize = 14,
+                    Foreground = new SolidColorBrush(StatusVisuals.ColorFor(e.Success ? OverallStatus.UpToDate : OverallStatus.Failed)),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 3, 0, 0),
+                });
+
+                var text = new StackPanel();
+                text.Children.Add(new TextBlock { Text = e.Title, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
+                var versions = e.FromVersion is { Length: > 0 } || e.ToVersion is { Length: > 0 } ? $"{e.FromVersion ?? "?"} → {e.ToVersion ?? "?"}  ·  " : "";
+                text.Children.Add(new TextBlock
+                {
+                    Text = versions + e.Result,
+                    TextWrapping = TextWrapping.Wrap,
+                    Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                });
+                Grid.SetColumn(text, 1);
+                row.Children.Add(text);
+
+                var time = new TextBlock
+                {
+                    Text = e.TimeUtc.ToLocalTime().ToString("t"),
+                    Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                    Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+                };
+                Grid.SetColumn(time, 2);
+                row.Children.Add(time);
+                panel.Children.Add(row);
+            }
+        }
 
         await new ContentDialog
         {
-            Title = e.Title,
-            Content = new ScrollViewer
-            {
-                MaxHeight = 480,
-                Content = new TextBlock { Text = string.Join("\n", lines), TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
-            },
+            Title = "What was installed",
+            Content = new ScrollViewer { Content = panel, MaxHeight = 480 },
             CloseButtonText = "Close",
         }.Themed(root).ShowAsync();
     }
 }
 
-/// <summary>Shared install flow (dashboard + updates page): BIOS approval first, then install.</summary>
+/// <summary>BIOS approval first, then install.</summary>
 public static class InstallFlow
 {
     public static async Task InstallSelectedAsync(XamlRoot root, MainViewModel vm)
@@ -142,7 +179,7 @@ public static class InstallFlow
 
         var bios = selected.Where(u => u.IsBios).ToList();
         var approved = new List<string>();
-        if (bios.Count > 0 && vm.Policy.BiosApprovalRequired)
+        if (bios.Count > 0 && vm.BiosApprovalRequired)
         {
             var report = await vm.GetBiosSafetyReportAsync(bios.Select(b => b.Key).ToList());
             if (report is not null && await AppDialogs.ApproveBiosAsync(root, bios, report))

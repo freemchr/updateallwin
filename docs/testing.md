@@ -28,7 +28,7 @@ Run with `dotnet test tests/UpdateAllWin.Tests -p:Platform=x64` (Windows), or as
 
 ## Manual verification on Windows 11 (HP Elite x360 1040 G11, build 26300)
 
-Done with the service in **simulation mode** (nothing installed). Screenshots are in `docs/images/`.
+Done with the service in **simulation mode** (nothing installed). Screenshots of that version are in git history; the current ones are in `docs/images/`.
 
 * The service starts from a System32 working directory (as Windows starts services) and the pipe accepts
   connections. *Two real bugs were found and fixed here: a content-root stall, and the client
@@ -36,7 +36,9 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
 * Device detection is real: HP Elite x360 1040 14 inch G11 (platform 8C52), BIOS W90 Ver. 01.10.00,
   Core Ultra 7 165H, 64 GB RAM. The serial number is masked by default.
 * Dashboard, Available Updates, History, Automation and Settings pages render in light and dark themes.
+  *(Since replaced by the single window, see below.)*
 * The floating toolbar shows the status colour (grey → orange → yellow) and can be dragged and kept on top.
+  *(The toolbar has since been removed.)*
 * "Update All" from the command line through the service installed both drivers, held the BIOS update
   for approval, and flagged a restart as required. The restart banner and deferral deadline appeared.
 * The BIOS approval dialog shows live safety checks: AC power, battery 97%, disk space, and BitLocker.
@@ -78,11 +80,19 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
   number and computer name**; the diagnostics export now masks the serial in them and skips
   HPIA's report .zip.
 
+## Simplified single window (2026-10-12, build folder, same PC)
+
+* The app is now one window plus a **What was installed** dialog. It ran from the build folder against
+  the installed service and showed "Your PC is up to date", the HP logo and model, and the machine
+  details. The dialog listed the real install results from 2026-10-11, failures included.
+* Not yet checked: the busy, restart-required and BIOS-approval states in the new window, and the
+  installed MSI copy.
+
 ## Not yet verified (needs real hardware or an elevated install)
 
 | Item | Why | How to verify |
 |---|---|---|
-| HP Image Assistant install, after restart | Install ran (exit 3010); the after-restart check that the updates are gone is pending | Restart, then **Check for Updates** and confirm the 3 SoftPaqs no longer appear |
+| HP Image Assistant install, after restart | Install ran (exit 3010); the after-restart check that the updates are gone is pending | Restart, then **Check for Updates** from the tray menu and confirm the 3 SoftPaqs no longer appear |
 | HPIA BIOS / firmware recommendations | The verified scan had no BIOS or firmware items | Scan a PC with an older BIOS and check the BIOS category and approval gate |
 | Dell Command \| Update | No Dell hardware available | Scan, install, `-report` with a folder path, and the exit code `/applyUpdates` returns when nothing applies |
 | Lenovo SU Helper / System Update | No Lenovo hardware available | WMI `Lenovo_Updates` timing after `-scanonly`; the meaning of Severity values |

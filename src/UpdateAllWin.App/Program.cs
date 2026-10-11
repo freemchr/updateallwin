@@ -6,8 +6,8 @@ using Microsoft.Windows.AppLifecycle;
 namespace UpdateAllWin.App;
 
 /// <summary>
-/// UpdateAllWin.exe                    open the main window (and start the tray/toolbar agent)
-/// UpdateAllWin.exe --background       start only the tray/toolbar agent (sign-in)
+/// UpdateAllWin.exe                    open the main window (and start the tray agent)
+/// UpdateAllWin.exe --background       start only the tray agent (sign-in)
 /// UpdateAllWin.exe --update-all       open and start Update All
 /// UpdateAllWin.exe --page history     open on a page
 /// Elevated helper modes (launched by the app with a UAC prompt, no UI):

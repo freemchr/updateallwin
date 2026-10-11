@@ -7,22 +7,20 @@ namespace UpdateAllWin.Toolbar;
 /// <summary>Actions the agent needs from the host app.</summary>
 public interface IShellActions
 {
-    /// <param name="page">null/"dashboard", "updates", "history", "automation" or "settings".</param>
+    /// <param name="page">null, "updates" (review a BIOS update) or "history" (what was installed).</param>
     void OpenMainWindow(string? page = null);
     bool IsMainWindowVisible { get; }
-    /// <summary>Called when the user exits the toolbar+tray and no main window is open.</summary>
     void ExitApplication();
 }
 
 /// <summary>
-/// The per-user companion to UpdateAllService: tray icon, floating toolbar and notifications.
+/// The per-user companion to UpdateAllService: tray icon and notifications.
 /// Runs non-elevated in the user's session; all privileged work happens in the service.
 /// </summary>
 public sealed class BackgroundAgent : IDisposable
 {
     private readonly DispatcherQueue _dispatcher;
     private readonly DispatcherQueueTimer _reminderTimer;
-    private ToolbarWindow? _toolbar;
     private bool _awaitingResult;
     private OperationTrigger? _requestedBy;
     private string? _lastTrayIcon;
@@ -46,8 +44,6 @@ public sealed class BackgroundAgent : IDisposable
         _reminderTimer.Interval = TimeSpan.FromMinutes(1);
         _reminderTimer.Tick += (_, _) => MaybeRemindRestart();
         _reminderTimer.Start();
-
-        if (UserPreferences.Current.ShowToolbar) SetToolbarVisible(true);
     }
 
     public IShellActions Shell { get; }
@@ -55,7 +51,6 @@ public sealed class BackgroundAgent : IDisposable
     public StatusMonitor Monitor { get; }
     public TrayIcon Tray { get; }
     public NotificationService Notifications { get; }
-    public bool ToolbarVisible => _toolbar is not null && UserPreferences.Current.ShowToolbar;
 
     // ------------------------------------------------------------------ actions
 
@@ -114,37 +109,6 @@ public sealed class BackgroundAgent : IDisposable
     public bool CanDeferRestart =>
         Monitor.Status?.RestartDeferralEndsUtc is not { } ends || DateTime.UtcNow < ends;
 
-    public void SetToolbarVisible(bool visible)
-    {
-        var prefs = UserPreferences.Current;
-        if (prefs.ShowToolbar != visible)
-        {
-            prefs.ShowToolbar = visible;
-            prefs.Save();
-        }
-        if (visible)
-        {
-            _toolbar ??= new ToolbarWindow(this);
-            _toolbar.Update(Monitor.Status, Monitor.ServiceAvailable);
-            _toolbar.AppWindow.Show(activateWindow: false);
-        }
-        else
-        {
-            _toolbar?.AppWindow.Hide();
-        }
-    }
-
-    public void SetToolbarAlwaysOnTop(bool value) => _toolbar?.SetAlwaysOnTop(value);
-
-    public void ApplyTheme(AppTheme theme) => _toolbar?.ApplyTheme(theme);
-
-    /// <summary>"Exit Toolbar": closes toolbar + tray for this session. The service keeps running.</summary>
-    public void ExitToolbarAndTray()
-    {
-        _toolbar?.AppWindow.Hide();
-        if (!Shell.IsMainWindowVisible) Shell.ExitApplication();
-    }
-
     // ------------------------------------------------------------------ status handling
 
     private IReadOnlyList<TrayMenuItem> BuildTrayMenu()
@@ -157,12 +121,13 @@ public sealed class BackgroundAgent : IDisposable
             new("Check for Updates", CheckForUpdates, Enabled: !busy),
             TrayMenuItem.Separator,
             new("Open UpdateAll Win", () => Shell.OpenMainWindow()),
-            new("View Update History", () => Shell.OpenMainWindow("history")),
-            new("Settings", () => Shell.OpenMainWindow("settings")),
-            TrayMenuItem.Separator,
-            new(ToolbarVisible ? "Hide Toolbar" : "Show Toolbar", () => SetToolbarVisible(!ToolbarVisible)),
+            new("What Was Installed", () => Shell.OpenMainWindow("history")),
         };
-        if (restartPending) items.Add(new TrayMenuItem("Restart Now to Finish Updates", () => _ = RestartNowAsync()));
+        if (restartPending)
+        {
+            items.Add(TrayMenuItem.Separator);
+            items.Add(new TrayMenuItem("Restart Now to Finish Updates", () => _ = RestartNowAsync()));
+        }
         items.Add(TrayMenuItem.Separator);
         items.Add(new TrayMenuItem("Exit", () => Shell.ExitApplication()));
         return items;
@@ -181,7 +146,6 @@ public sealed class BackgroundAgent : IDisposable
         }
         Tray.SetTooltip(TooltipFor(status, change.ServiceAvailable));
         Tray.BlockShutdown(status?.BiosInstallInProgress == true, "A BIOS update is being installed. Don't turn off your PC.");
-        _toolbar?.Update(status, change.ServiceAvailable);
 
         if (status is null) return;
 
@@ -200,29 +164,15 @@ public sealed class BackgroundAgent : IDisposable
 
     private void OnOperationFinished(EngineStatus? previous, EngineStatus status, OperationTrigger? trigger)
     {
-        var fromToolbar = trigger == OperationTrigger.Toolbar;
+        var fromTray = trigger == OperationTrigger.Toolbar;
         var quiet = InQuietHours();
-
-        if (fromToolbar)
-        {
-            var text = status.Overall switch
-            {
-                OverallStatus.UpToDate => "All good ✓",
-                OverallStatus.RestartRequired => "Restart needed",
-                OverallStatus.Failed => "Needs attention",
-                OverallStatus.UpdatesAvailable when status.Updates.Any(u => u.State == UpdateState.AwaitingApproval) => "Approval needed",
-                OverallStatus.UpdatesAvailable => "Updates found",
-                _ => "Complete",
-            };
-            _toolbar?.FlashComplete(text);
-        }
 
         if (status.RestartPending && previous?.RestartPending != true)
         {
             ShowRestartReminder(force: true);
             return;
         }
-        if (status.Updates.Any(u => u.State == UpdateState.AwaitingApproval) && (fromToolbar || trigger == OperationTrigger.Schedule) && !quiet)
+        if (status.Updates.Any(u => u.State == UpdateState.AwaitingApproval) && (fromTray || trigger == OperationTrigger.Schedule) && !quiet)
         {
             Notifications.BiosApprovalNeeded();
             return;
@@ -237,7 +187,7 @@ public sealed class BackgroundAgent : IDisposable
             Notifications.UpdatesAvailable(status.Updates.Count(u => u.State is UpdateState.Available or UpdateState.AwaitingApproval));
             return;
         }
-        if (fromToolbar && !ToolbarVisible && status.Overall == OverallStatus.UpToDate)
+        if (fromTray && status.Overall == OverallStatus.UpToDate)
             Notifications.Info("You're all good", "Your PC is up to date. No driver, BIOS or firmware updates are needed.");
     }
 
@@ -304,7 +254,6 @@ public sealed class BackgroundAgent : IDisposable
         _reminderTimer.Stop();
         Monitor.Dispose();
         Notifications.Unregister();
-        _toolbar?.CloseForExit();
         Tray.Dispose();
     }
 }

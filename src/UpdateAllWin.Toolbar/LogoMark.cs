@@ -65,7 +65,7 @@ public sealed partial class LogoMark : UserControl
     };
 }
 
-/// <summary>Toolbar/tray status colours from the spec.</summary>
+/// <summary>Tray status colours from the spec.</summary>
 public static class StatusVisuals
 {
     public static Color ColorFor(OverallStatus status) => status switch

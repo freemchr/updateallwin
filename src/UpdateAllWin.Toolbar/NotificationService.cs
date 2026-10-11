@@ -29,7 +29,7 @@ public sealed class NotificationService
         }
         catch
         {
-            // Notifications unavailable (e.g. elevated or policy-disabled); the tray and toolbar still show status.
+            // Notifications unavailable (e.g. elevated or policy-disabled); the tray icon still shows status.
         }
     }
 

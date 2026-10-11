@@ -10,10 +10,6 @@ public enum AppTheme { System, Light, Dark }
 public sealed class UserPreferences
 {
     public bool StartWithWindows { get; set; } = true;
-    public bool ShowToolbar { get; set; } = true;
-    public bool ToolbarAlwaysOnTop { get; set; } = true;
-    public int? ToolbarX { get; set; }
-    public int? ToolbarY { get; set; }
     public bool MinimizeToTray { get; set; } = true;
     public AppTheme Theme { get; set; } = AppTheme.System;
     public bool ShowSerialNumber { get; set; }
@@ -50,7 +46,7 @@ public sealed class UserPreferences
     }
 }
 
-/// <summary>Per-user "start with Windows" entry (HKCU Run) that launches the tray/toolbar agent.</summary>
+/// <summary>Per-user "start with Windows" entry (HKCU Run) that launches the tray agent.</summary>
 public static class StartupRegistration
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";

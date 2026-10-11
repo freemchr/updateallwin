@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- The app is now one simple window: status, one **Update All** button (or **Restart Now / Restart Later**), machine details and a **What was installed** list. The Dashboard, Available Updates, History, Automation and Settings pages are gone; settings use their defaults.
+- The floating toolbar has been removed. **Update All** is still in the tray icon menu.
+
 ## 1.0.0 (preview), 2026-10-11
 
 First version.
