@@ -712,8 +712,10 @@ public sealed class UpdateEngine : IDisposable
                 catch (Exception ex)
                 {
                     _log.LogError(ex, "{Adapter} install failed", adapter.DisplayName);
+                    // The vendor tool may have run, so the outcome is unknown; don't show raw exception text.
                     foreach (var u in items.Where(u => u.State is not (UpdateState.Installed or UpdateState.InstalledRestartRequired)))
-                        Fail(u, ex.Message);
+                        Fail(u, $"UpdateAll Win couldn't confirm the result from {adapter.DisplayName}, so it may have installed. " +
+                                "Restart, then check for updates again. Details are in the diagnostic logs.");
                 }
                 finally
                 {
