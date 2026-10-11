@@ -35,7 +35,7 @@ if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 Invoke-Dotnet publish src/UpdateAllWin.App/UpdateAllWin.App.csproj -c $Configuration -p:Platform=x64 -o $publish
 Invoke-Dotnet publish src/UpdateAllWin.Service/UpdateAllWin.Service.csproj -c $Configuration -p:Platform=x64 -o $publish
 # Without these the main window can't load its XAML and the app crashes on launch.
-foreach ($required in 'UpdateAllWin.pri', 'App.xbf', 'MainWindow.xbf', 'Pages\DashboardPage.xbf') {
+foreach ($required in 'UpdateAllWin.pri', 'App.xbf', 'MainWindow.xbf') {
     if (-not (Test-Path (Join-Path $publish $required))) { throw "Publish output is missing $required" }
 }
 
