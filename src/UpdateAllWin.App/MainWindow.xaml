@@ -61,6 +61,33 @@
                             <TextBlock Text="{x:Bind ViewModel.ProgressText, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
+
+                        <!-- One row per update: what it is and where it's up to -->
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.ListedUpdates}" Visibility="{x:Bind vm:Format.Visible(ViewModel.ShowUpdateList), Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:UpdateItemViewModel">
+                                    <Grid Padding="0,8" ColumnSpacing="12" ToolTipService.ToolTip="{x:Bind RowToolTip, Mode=OneWay}"
+                                          BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="20" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="{x:Bind RowGlyph, Mode=OneWay}" Foreground="{x:Bind RowBrush, Mode=OneWay}" FontSize="16" VerticalAlignment="Top" Margin="0,2,0,0"
+                                                  Visibility="{x:Bind vm:Format.Collapsed(IsWorking), Mode=OneWay}" />
+                                        <ProgressRing Width="16" Height="16" IsActive="{x:Bind IsWorking, Mode=OneWay}" VerticalAlignment="Top" Margin="0,2,0,0"
+                                                      Visibility="{x:Bind vm:Format.Visible(IsWorking), Mode=OneWay}" />
+                                        <StackPanel Grid.Column="1" Spacing="4">
+                                            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                                            <ProgressBar Value="{x:Bind DownloadPercent, Mode=OneWay}" IsIndeterminate="{x:Bind DownloadPercentUnknown, Mode=OneWay}"
+                                                         Visibility="{x:Bind vm:Format.Visible(IsDownloading), Mode=OneWay}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{x:Bind RowStatus, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 

@@ -77,6 +77,7 @@ public static class Format
         UpdateState.AwaitingApproval => "Needs approval",
         UpdateState.Queued => "Queued",
         UpdateState.Downloading => "Downloading",
+        UpdateState.Downloaded => "Downloaded",
         UpdateState.Installing => "Installing",
         UpdateState.Installed => "Installed",
         UpdateState.InstalledRestartRequired => "Restart required",
@@ -91,7 +92,7 @@ public static class Format
         UpdateState.Installed => StatusVisuals.ColorFor(OverallStatus.UpToDate),
         UpdateState.InstalledRestartRequired or UpdateState.AwaitingApproval => StatusVisuals.ColorFor(OverallStatus.RestartRequired),
         UpdateState.Failed => StatusVisuals.ColorFor(OverallStatus.Failed),
-        UpdateState.Downloading or UpdateState.Installing or UpdateState.Queued => StatusVisuals.ColorFor(OverallStatus.Busy),
+        UpdateState.Downloading or UpdateState.Downloaded or UpdateState.Installing or UpdateState.Queued => StatusVisuals.ColorFor(OverallStatus.Busy),
         UpdateState.Skipped => StatusVisuals.ColorFor(OverallStatus.UpdatesAvailable),
         _ => StatusVisuals.ColorFor(OverallStatus.Unknown),
     });

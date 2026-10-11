@@ -38,6 +38,51 @@ public sealed class UpdateItemViewModel : ObservableObject
     public bool IsExcluded => _dto.State == UpdateState.Excluded;
     public bool HasReleaseNotes => !string.IsNullOrEmpty(_dto.ReleaseNotesUrl);
 
+    // ------------------------------------------------------------------ main window list row
+
+    /// <summary>Downloading and installing show a spinner instead of an icon.</summary>
+    public bool IsWorking => _dto.State is UpdateState.Downloading or UpdateState.Installing;
+    public bool IsDownloading => _dto.State == UpdateState.Downloading;
+    public double DownloadPercent => _dto.Percent ?? 0;
+    public bool DownloadPercentUnknown => _dto.Percent is null;
+
+    public string RowStatus => _dto.State switch
+    {
+        UpdateState.Available => "Ready",
+        UpdateState.AwaitingApproval => "Needs your OK",
+        UpdateState.Queued => "Waiting",
+        UpdateState.Downloading => _dto.Percent is { } p ? $"Downloading {p}%" : "Downloading…",
+        UpdateState.Downloaded => "Downloaded",
+        UpdateState.Installing => "Installing…",
+        UpdateState.Installed => "Installed",
+        UpdateState.InstalledRestartRequired => "Installed · restart needed",
+        UpdateState.Failed => "Failed",
+        UpdateState.Skipped => "Skipped",
+        _ => "",
+    };
+
+    public string RowGlyph => _dto.State switch
+    {
+        UpdateState.Available => "\uE896",                                                  // download arrow
+        UpdateState.AwaitingApproval or UpdateState.Skipped => "\uE7BA",                    // warning
+        UpdateState.Queued => "\uE823",                                                     // clock
+        UpdateState.Downloaded or UpdateState.Installed or UpdateState.InstalledRestartRequired => "\uE73E", // tick
+        UpdateState.Failed => "\uE711",                                                     // cross
+        _ => "",
+    };
+
+    /// <summary>Blue tick once downloaded, green once installed.</summary>
+    public Brush RowBrush => new SolidColorBrush(Toolbar.StatusVisuals.ColorFor(_dto.State switch
+    {
+        UpdateState.Downloaded => OverallStatus.Busy,
+        UpdateState.Installed or UpdateState.InstalledRestartRequired => OverallStatus.UpToDate,
+        UpdateState.Failed => OverallStatus.Failed,
+        UpdateState.AwaitingApproval or UpdateState.Skipped => OverallStatus.UpdatesAvailable,
+        _ => OverallStatus.Unknown,
+    }));
+
+    public string RowToolTip => string.IsNullOrEmpty(_dto.StatusMessage) ? $"{CurrentVersion} → {AvailableVersion}" : _dto.StatusMessage;
+
     public bool IsSelected
     {
         get => _isSelected;

@@ -146,12 +146,100 @@ public sealed partial class HpImageAssistantAdapter : IManufacturerAdapter
     {
         var work = ctx.Paths.NewWorkFolder("hpia-download");
         var list = WriteSpList(work, updates);
-        var result = await ctx.Processes.RunAsync(_exe!,
-            $"/Operation:Analyze /Action:Download /SPList:{ToolResolver.Quote(list)} /Silent " +
-            $"/ReportFolder:{ToolResolver.Quote(work)} /SoftPaqDownloadFolder:{ToolResolver.Quote(DownloadFolder(ctx))}",
-            ct, timeout: TimeSpan.FromHours(2));
+        var folder = DownloadFolder(ctx);
+        var sizes = await GetSoftPaqSizesAsync(updates, ctx, ct);
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var watcher = WatchDownloadsAsync(updates, sizes, folder, ctx, watching.Token);
+        ProcessResult result;
+        try
+        {
+            result = await ctx.Processes.RunAsync(_exe!,
+                $"/Operation:Analyze /Action:Download /SPList:{ToolResolver.Quote(list)} /Silent " +
+                $"/ReportFolder:{ToolResolver.Quote(work)} /SoftPaqDownloadFolder:{ToolResolver.Quote(folder)}",
+                ct, timeout: TimeSpan.FromHours(2));
+        }
+        finally
+        {
+            watching.Cancel();
+            try { await watcher; } catch (OperationCanceledException) { }
+        }
         LogExit(ctx, result.ExitCode);
         return new AdapterOperationResult(result.ExitCode is 0 or 256 or 257, false, Describe(result.ExitCode), result.ExitCode);
+    }
+
+    /// <summary>
+    /// SoftPaq sizes from HP's server (HEAD request). HPIA's report has no sizes, and the .exe sits
+    /// next to the release notes, so the URL comes from those. Null where unknown.
+    /// </summary>
+    private static async Task<Dictionary<DetectedUpdate, long?>> GetSoftPaqSizesAsync(IReadOnlyList<DetectedUpdate> updates, AdapterContext ctx, CancellationToken ct)
+    {
+        var sizes = new Dictionary<DetectedUpdate, long?>();
+        foreach (var u in updates)
+        {
+            long? size = null;
+            if (u.ReleaseNotesUrl is { } notes && notes.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    timeout.CancelAfter(TimeSpan.FromSeconds(10));
+                    size = await ctx.Downloader.GetContentLengthAsync(notes[..^5] + ".exe", timeout.Token);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+                {
+                    ctx.Logger.LogInformation("Couldn't get the size of {SoftPaq}: {Error}", u.VendorId, ex.Message);
+                }
+            }
+            sizes[u] = size > 0 ? size : null;
+        }
+        return sizes;
+    }
+
+    /// <summary>
+    /// Shows per-SoftPaq progress while HPIA downloads, by comparing each spNNNNNN.exe in the download
+    /// folder with its size on HP's server. A SoftPaq counts as downloaded once its file is full size.
+    /// </summary>
+    private static async Task WatchDownloadsAsync(IReadOnlyList<DetectedUpdate> updates, Dictionary<DetectedUpdate, long?> sizes,
+        string folder, AdapterContext ctx, CancellationToken ct)
+    {
+        var total = sizes.Values.Sum(v => v ?? 0);
+        var last = "";
+        while (!ct.IsCancellationRequested)
+        {
+            long done = 0;
+            DetectedUpdate? current = null;
+            foreach (var u in updates)
+            {
+                var file = new FileInfo(Path.Combine(folder, HpiaReportParser.NormalizeId(u.VendorId) + ".exe"));
+                var length = file.Exists ? file.Length : 0;
+                if (sizes[u] is not { } size) { current ??= file.Exists ? u : null; continue; }
+
+                done += Math.Min(length, size);
+                if (length >= size)
+                {
+                    u.State = UpdateState.Downloaded;
+                    u.Percent = null;
+                }
+                else
+                {
+                    u.State = UpdateState.Downloading;
+                    u.Percent = (int)(length * 100 / size);
+                    if (length > 0) current ??= u;
+                }
+            }
+
+            int? overall = total > 0 ? (int)(done * 100 / total) : null;
+            var state = string.Join(",", updates.Select(u => $"{u.State}{u.Percent}")) + overall;
+            if (state != last)
+            {
+                last = state;
+                ctx.Report(EngineStage.Downloading,
+                    current is null ? $"Downloading {updates.Count} update(s) from HP..." : $"Downloading {current.Name}...",
+                    overall, current?.Name);
+            }
+            await Task.Delay(TimeSpan.FromSeconds(1), ct);
+        }
     }
 
     public async Task<AdapterOperationResult> InstallUpdatesAsync(IReadOnlyList<DetectedUpdate> updates, AdapterContext ctx, CancellationToken ct)

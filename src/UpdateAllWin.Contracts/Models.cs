@@ -12,6 +12,8 @@ public enum UpdateState
     AwaitingApproval,
     Queued,
     Downloading,
+    /// <summary>Downloaded and waiting to install.</summary>
+    Downloaded,
     Installing,
     Installed,
     InstalledRestartRequired,
@@ -109,6 +111,8 @@ public sealed record UpdateDto
     public string? ReleaseNotesUrl { get; init; }
     public UpdateState State { get; init; }
     public string StatusMessage { get; init; } = "";
+    /// <summary>Download progress for this update (0-100) while it downloads, when the adapter can tell.</summary>
+    public int? Percent { get; init; }
     public bool RequiresApproval { get; init; }
     /// <summary>Install granularity note shown to the user, e.g. "Installed with all BIOS updates".</summary>
     public string GroupingNote { get; init; } = "";

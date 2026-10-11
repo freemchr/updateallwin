@@ -22,7 +22,7 @@ public sealed partial class MainWindow : Window
         SystemBackdrop = new MicaBackdrop();
 
         var scale = WindowScale.For(this);
-        AppWindow.Resize(new SizeInt32((int)(600 * scale), (int)(560 * scale)));
+        AppWindow.Resize(new SizeInt32((int)(600 * scale), (int)(640 * scale)));
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.IsMaximizable = false;

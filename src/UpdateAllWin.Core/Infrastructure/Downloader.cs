@@ -7,6 +7,9 @@ public interface IDownloader
 {
     Task<string> GetStringAsync(string url, CancellationToken ct);
 
+    /// <summary>The file's size from a HEAD request, or null if the server doesn't say.</summary>
+    Task<long?> GetContentLengthAsync(string url, CancellationToken ct);
+
     /// <summary>Downloads to <paramref name="destination"/>; verifies SHA-256 when given.</summary>
     Task DownloadFileAsync(string url, string destination, CancellationToken ct, string? expectedSha256 = null, IProgress<int>? percent = null);
 }
@@ -26,6 +29,14 @@ public sealed class HttpDownloader(ILogger<HttpDownloader> logger) : IDownloader
     {
         RequireHttps(url);
         return Http.GetStringAsync(url, ct);
+    }
+
+    public async Task<long?> GetContentLengthAsync(string url, CancellationToken ct)
+    {
+        RequireHttps(url);
+        using var request = new HttpRequestMessage(HttpMethod.Head, url);
+        using var response = await Http.SendAsync(request, ct);
+        return response.IsSuccessStatusCode ? response.Content.Headers.ContentLength : null;
     }
 
     public async Task DownloadFileAsync(string url, string destination, CancellationToken ct, string? expectedSha256 = null, IProgress<int>? percent = null)

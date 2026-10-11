@@ -192,6 +192,7 @@ public sealed class UpdateEngine : IDisposable
             ReleaseNotesUrl = u.ReleaseNotesUrl,
             State = u.State,
             StatusMessage = u.StatusMessage,
+            Percent = u.State == UpdateState.Downloading ? u.Percent : null,
             RequiresApproval = u.Category == UpdateCategory.Bios && _policies.Current.BiosApprovalRequired,
             GroupingNote = note,
         };
@@ -278,7 +279,7 @@ public sealed class UpdateEngine : IDisposable
         catch (OperationCanceledException)
         {
             lock (_sync)
-                foreach (var u in _updates.Where(u => u.State is UpdateState.Queued or UpdateState.Downloading or UpdateState.Installing))
+                foreach (var u in _updates.Where(u => u.State is UpdateState.Queued or UpdateState.Downloading or UpdateState.Downloaded or UpdateState.Installing))
                 {
                     u.State = UpdateState.Available;
                     u.StatusMessage = "Cancelled";
@@ -639,7 +640,7 @@ public sealed class UpdateEngine : IDisposable
             return Summarise(OperationKind.Install, [.. skipped, .. awaiting], awaiting.Count > 0 && skipped.Count == 0, msg);
         }
 
-        foreach (var u in targets) { u.State = UpdateState.Queued; u.StatusMessage = ""; }
+        foreach (var u in targets) { u.State = UpdateState.Queued; u.StatusMessage = ""; u.Percent = null; }
         Changed();
 
         // 4. Restore point (non-fatal).
@@ -674,7 +675,7 @@ public sealed class UpdateEngine : IDisposable
                 {
                     if (adapter.Capabilities.HasFlag(AdapterCapabilities.Download))
                     {
-                        foreach (var u in items) u.State = UpdateState.Downloading;
+                        foreach (var u in items) { u.State = UpdateState.Downloading; u.Percent = null; }
                         SetStage(EngineStage.Downloading, $"Downloading {items.Count} update(s) from {adapter.DisplayName}...", 0);
                         var download = await adapter.DownloadUpdatesAsync(items, ctx, ct);
                         if (!download.Success && !download.NotSupported)
@@ -683,6 +684,8 @@ public sealed class UpdateEngine : IDisposable
                             AddHistory(HistoryKind.Failure, trigger, $"Download failed ({adapter.DisplayName})", download.Message, false, adapter.Id, exitCode: download.ExitCode);
                             continue;
                         }
+                        foreach (var u in items.Where(u => u.State == UpdateState.Downloading)) u.State = UpdateState.Downloaded;
+                        Changed();
                     }
 
                     var biosItems = items.Where(u => u.Category == UpdateCategory.Bios).ToList();
@@ -701,7 +704,7 @@ public sealed class UpdateEngine : IDisposable
                     var result = await adapter.InstallUpdatesAsync(items, ctx, ct);
                     restartRequired |= result.RestartRequired || items.Any(u => u.State == UpdateState.InstalledRestartRequired);
 
-                    foreach (var u in items.Where(u => u.State is UpdateState.Installing or UpdateState.Queued or UpdateState.Downloading))
+                    foreach (var u in items.Where(u => u.State is UpdateState.Installing or UpdateState.Queued or UpdateState.Downloading or UpdateState.Downloaded))
                         if (result.Success) Succeed(u, result.RestartRequired);
                         else Fail(u, result.Message, result.ExitCode);
                 }
@@ -930,7 +933,7 @@ public sealed class UpdateEngine : IDisposable
             SizeBytes = d.SizeBytes,
             Restart = d.Restart,
             ReleaseNotesUrl = d.ReleaseNotesUrl,
-            State = d.State is UpdateState.Queued or UpdateState.Downloading or UpdateState.Installing ? UpdateState.Available : d.State,
+            State = d.State is UpdateState.Queued or UpdateState.Downloading or UpdateState.Downloaded or UpdateState.Installing ? UpdateState.Available : d.State,
             StatusMessage = d.StatusMessage,
         }).ToList();
         _updatesAreSnapshot = true;

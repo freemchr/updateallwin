@@ -63,6 +63,7 @@ internal sealed class NoProcesses : IProcessRunner
 internal sealed class NoDownloads : IDownloader
 {
     public Task<string> GetStringAsync(string url, CancellationToken ct) => throw new InvalidOperationException("No network in tests.");
+    public Task<long?> GetContentLengthAsync(string url, CancellationToken ct) => Task.FromResult<long?>(null);
     public Task DownloadFileAsync(string url, string destination, CancellationToken ct, string? expectedSha256 = null, IProgress<int>? percent = null) =>
         throw new InvalidOperationException("No network in tests.");
 }

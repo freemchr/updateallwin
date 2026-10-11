@@ -98,6 +98,8 @@ public sealed class DetectedUpdate
     public UpdateState State { get; set; } = UpdateState.Available;
     public string StatusMessage { get; set; } = "";
     public int? ExitCode { get; set; }
+    /// <summary>Download progress (0-100) while <see cref="State"/> is Downloading, when known.</summary>
+    public int? Percent { get; set; }
 
     /// <summary>Stable across scans for the same package version; used for exclusions and approvals.</summary>
     public string Key => $"{AdapterId}:{VendorId}:{AvailableVersion}".ToLowerInvariant();

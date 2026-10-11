@@ -28,6 +28,9 @@ public sealed partial class MainViewModel : ObservableObject
     public ServiceClient Client => Agent.Monitor.Client;
 
     public ObservableCollection<UpdateItemViewModel> Updates { get; } = [];
+    /// <summary>The updates shown in the window (everything except excluded ones).</summary>
+    public ObservableCollection<UpdateItemViewModel> ListedUpdates { get; } = [];
+    public bool ShowUpdateList => _serviceAvailable && ListedUpdates.Count > 0;
 
     // ------------------------------------------------------------------ status
 
@@ -203,6 +206,13 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (existing.TryGetValue(dtos[i].Key, out var vm)) vm.Update(dtos[i]);
             else Updates.Insert(Math.Min(i, Updates.Count), new UpdateItemViewModel(dtos[i], selected: true));
+        }
+
+        var listed = Updates.Where(u => !u.IsExcluded).ToList();
+        if (!ListedUpdates.SequenceEqual(listed))
+        {
+            ListedUpdates.Clear();
+            foreach (var u in listed) ListedUpdates.Add(u);
         }
         OnPropertyChanged(string.Empty);
     }

@@ -70,9 +70,11 @@ public sealed class SimulatedAdapter : IManufacturerAdapter
         {
             for (var p = 0; p <= 100; p += 25)
             {
+                u.Percent = p;
                 context.Report(EngineStage.Downloading, $"Downloading {u.Name}...", p, u.Name);
                 await Task.Delay(_step / 2, ct);
             }
+            u.State = UpdateState.Downloaded;
         }
         return Is(context, "DownloadFailure")
             ? new AdapterOperationResult(false, false, "Download failed: connection reset (simulated)", 4098)
