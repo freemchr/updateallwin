@@ -175,10 +175,18 @@ public sealed partial class HpImageAssistantAdapter : IManufacturerAdapter
         {
             if (perItem.TryGetValue(HpiaReportParser.NormalizeId(u.VendorId), out var rem))
             {
-                var ok = rem.ReturnCode is 0 or 3010 || rem.Status.Contains("success", StringComparison.OrdinalIgnoreCase);
+                // Statuses seen from HPIA 5.3.7: INSTALL_COMPLETED, and INSTALL_UNKNOWN with ReturnCode 0
+                // (the SoftPaq returned success but HPIA couldn't confirm it; the next scan rechecks).
+                var failed = rem.Status.Contains("fail", StringComparison.OrdinalIgnoreCase);
+                var ok = !failed && (rem.ReturnCode is 0 or 3010
+                    || rem.Status.Contains("success", StringComparison.OrdinalIgnoreCase)
+                    || rem.Status.Contains("completed", StringComparison.OrdinalIgnoreCase));
+                var unconfirmed = ok && rem.Status.Contains("unknown", StringComparison.OrdinalIgnoreCase);
                 var itemRestart = rem.ReturnCode == 3010 || (ok && restart && u.Restart != RestartBehavior.NotRequired);
                 u.State = ok ? (itemRestart ? UpdateState.InstalledRestartRequired : UpdateState.Installed) : UpdateState.Failed;
-                u.StatusMessage = ok ? (itemRestart ? "Restart required" : "") : $"{rem.Status} {rem.Description}".Trim();
+                u.StatusMessage = !ok ? $"{rem.Status} {rem.Description}".Trim()
+                    : unconfirmed ? (itemRestart ? "Restart required; HP will confirm on the next check" : "HP will confirm on the next check")
+                    : itemRestart ? "Restart required" : "";
                 u.ExitCode = rem.ReturnCode;
             }
             else if (overallOk)

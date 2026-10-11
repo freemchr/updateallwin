@@ -3,7 +3,7 @@
 The spec says not to claim a manufacturer integration works unless it has actually been verified. This
 page records what has been verified, how, and what still needs real hardware.
 
-## Automated tests (`tests/UpdateAllWin.Tests`, 59 tests, all passing)
+## Automated tests (`tests/UpdateAllWin.Tests`, 60 tests, all passing)
 
 Run with `dotnet test tests/UpdateAllWin.Tests -p:Platform=x64` (Windows), or as part of `build/build.ps1`.
 
@@ -51,6 +51,20 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
   from the build folder, which has them. Fixed with a publish target in the app project, and
   `build.ps1` now fails if they're missing. Reinstalling the fixed MSI over 1.0.0 replaced the old
   copy (a single entry in Programs and Features), and the installed app opens and responds.
+
+## Real HP Image Assistant install (2026-10-11, Update All from the app)
+
+* Re-check 9 min (HPIA run times vary: 70 s earlier), restore point, `/Action:Download` 2.5 min,
+  `/Action:Install` 3 min. HPIA exited **3010** (installed, restart required).
+* **Bug found:** HPIA 5.3.7 writes `Remediation.ReturnCode` as a string (`"0"`), and the parser
+  only accepted a number, so it threw and all three updates were wrongly shown as failed. The
+  drivers had actually installed (HP Application Enabling 1.87.4769.0, Intel ME 2546.9 / 2603.9).
+  Fixed, with a test using the captured report shape.
+* Per-SoftPaq statuses seen: `INSTALL_COMPLETED`, and `INSTALL_UNKNOWN` with ReturnCode 0 (shown as
+  installed, "HP will confirm on the next check"). An empty `"Remediation": {}` means not attempted.
+* The install-time analysis lists more items than the scan (Accessories such as dock drivers, Poly
+  Camera and UEFI diagnostics in Software), because the install run has no `/Category` filter. Only
+  the selected SoftPaqs in `/SPList` are installed.
 * `UpdateAllService.exe scan` downloaded HPIA 5.3.7 from `hpia.hpcloud.hp.com`, verified the
   signer as HP Inc., extracted it and ran `/Operation:Analyze /Action:List`. HPIA exited 0 after
   about 70 seconds; the whole scan took 77 seconds.
@@ -68,7 +82,7 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
 
 | Item | Why | How to verify |
 |---|---|---|
-| HP Image Assistant install | The scan is verified; installing has not been run yet | **Update All** on an HP PC with updates available, then check history, exit codes and the restart flag |
+| HP Image Assistant install, after restart | Install ran (exit 3010); the after-restart check that the updates are gone is pending | Restart, then **Check for Updates** and confirm the 3 SoftPaqs no longer appear |
 | HPIA BIOS / firmware recommendations | The verified scan had no BIOS or firmware items | Scan a PC with an older BIOS and check the BIOS category and approval gate |
 | Dell Command \| Update | No Dell hardware available | Scan, install, `-report` with a folder path, and the exit code `/applyUpdates` returns when nothing applies |
 | Lenovo SU Helper / System Update | No Lenovo hardware available | WMI `Lenovo_Updates` timing after `-scanonly`; the meaning of Severity values |

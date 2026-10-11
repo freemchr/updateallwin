@@ -93,11 +93,14 @@ public static class HpiaReportParser
                 {
                     var id = Str(rec, "SoftPaqId", "SoftPaqID", "Id");
                     if (id is null || !rec.TryGetProperty("Remediation", out var rem) || rem.ValueKind != JsonValueKind.Object) continue;
-                    int? code = rem.TryGetProperty("ReturnCode", out var rc) && rc.TryGetInt32(out var c) ? c : null;
-                    result[NormalizeId(id)] = new HpiaRemediation(NormalizeId(id), Str(rem, "Status") ?? "", code, Str(rem, "ReturnDescription"));
+                    // HPIA 5.3.7 writes ReturnCode as a string ("0"); accept a number too.
+                    int? code = int.TryParse(Str(rem, "ReturnCode"), out var c) ? c : null;
+                    var status = Str(rem, "Status") ?? "";
+                    if (status.Length == 0 && code is null) continue; // "Remediation": {} = not attempted
+                    result[NormalizeId(id)] = new HpiaRemediation(NormalizeId(id), status, code, Str(rem, "ReturnDescription"));
                 }
             }
-            catch (JsonException) { }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException) { }
         }
         return result;
     }

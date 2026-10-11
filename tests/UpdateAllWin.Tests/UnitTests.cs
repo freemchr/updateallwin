@@ -143,6 +143,25 @@ public class ParserTests
         Directory.Delete(dir, true);
     }
 
+    [Fact]
+    public void Hpia_537_remediation_with_string_return_code_is_parsed()
+    {
+        // Shape captured from HPIA 5.3.7 on an HP Elite x360 1040 G11.
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        File.WriteAllText(Path.Combine(dir, "report.json"), """
+            {"HPIA":{"ExitCode":"3010","Recommendations":[
+              {"Name":"HP Services Scan for Commercial","SoftPaqID":"sp165987","Remediation":{"Status":"INSTALL_COMPLETED","ReturnCode":"0","ReturnDescription":"SUCCESS:NOREBOOT=Driver installed successfully."}},
+              {"Name":"Intel Management Engine Driver","SoftPaqID":"sp173750","Remediation":{"Status":"INSTALL_UNKNOWN","ReturnCode":"0","ReturnDescription":""}},
+              {"Name":"No result","SoftPaqID":"sp1","Remediation":{}}]}}
+            """);
+        var rem = HpiaReportParser.ParseRemediation(dir);
+        Assert.Equal(0, rem["sp165987"].ReturnCode);
+        Assert.Equal("INSTALL_COMPLETED", rem["sp165987"].Status);
+        Assert.Equal("INSTALL_UNKNOWN", rem["sp173750"].Status);
+        Assert.False(rem.ContainsKey("sp1"));
+        Directory.Delete(dir, true);
+    }
+
     [Theory]
     [InlineData("sp151063", "151063")]
     [InlineData("SP151063.exe", "151063")]
