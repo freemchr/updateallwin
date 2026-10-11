@@ -4,7 +4,7 @@
 
 **Version 1.0.0 (preview)** · Windows 10 (19041) / Windows 11 · x64 · [Changelog](CHANGELOG.md)
 
-> **What is it?** A free Windows app that keeps your PC's drivers, BIOS and firmware up to date with
+> **What is it?** A Windows app that keeps your PC's drivers, BIOS and firmware up to date with
 > one click. It doesn't download drivers from random websites: it runs your PC maker's own official
 > update tool (HP Image Assistant, Dell Command | Update, Lenovo System Update) in the background,
 > or Windows Update for other brands. Then it shows you what changed and asks before anything risky,
