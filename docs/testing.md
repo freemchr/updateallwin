@@ -3,7 +3,7 @@
 The spec says not to claim a manufacturer integration works unless it has actually been verified. This
 page records what has been verified, how, and what still needs real hardware.
 
-## Automated tests (`tests/UpdateAllWin.Tests`, 58 tests, all passing)
+## Automated tests (`tests/UpdateAllWin.Tests`, 59 tests, all passing)
 
 Run with `dotnet test tests/UpdateAllWin.Tests -p:Platform=x64` (Windows), or as part of `build/build.ps1`.
 
@@ -24,7 +24,7 @@ Run with `dotnet test tests/UpdateAllWin.Tests -p:Platform=x64` (Windows), or as
 | Schedule and quiet hours | Daily and weekly schedules, manual mode, catching up missed scans, quiet hours that wrap past midnight |
 | Report parsers | HPIA XML and JSON reports, SoftPaq list numbers, Dell DCU XML report and exit codes |
 | IPC and security | Real named-pipe round trips; service unavailable; standard users can't change policy; HPIA path must be outside user-writable folders; standard users can be blocked from installing; restart refused when none is pending |
-| Exports | CSV formula-injection protection, serial number masking |
+| Exports | CSV formula-injection protection, serial number masking (including inside vendor reports) |
 
 ## Manual verification on Windows 11 (HP Elite x360 1040 G11, build 26300)
 
@@ -43,14 +43,30 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
   BitLocker reads "access denied" in the unelevated test service; the real service runs as SYSTEM.
 * The MSI builds (581 files), and its ServiceInstall, ServiceControl, shortcuts and Run entries were checked.
 
+## Real HP Image Assistant scan (2026-10-11, same PC, MSI installed, service as SYSTEM)
+
+* `msiexec /i` installed cleanly (exit 0); UpdateAllService started automatically as LocalSystem.
+* `UpdateAllService.exe scan` downloaded HPIA 5.3.7 from `hpia.hpcloud.hp.com`, verified the
+  signer as HP Inc., extracted it and ran `/Operation:Analyze /Action:List`. HPIA exited 0 after
+  about 70 seconds; the whole scan took 77 seconds.
+* The parser read the XML report correctly: 3 recommendations, all matching HP's report
+  (sp173791 HP Application Enabling Software Driver, sp165987 HP Services Scan for Commercial as
+  Driver, sp173750 Intel Management Engine Driver as Software), with installed and new versions.
+* Findings: the HPIA self-extractor (`-e -f -s`) returns **1168** even when extraction succeeds, so
+  the adapter correctly checks for `HPImageAssistant.exe` instead of trusting the exit code. HPIA's
+  JSON report can show a different `RecommendationValue` from the XML (2613.9.28.0 vs 2543.9.0.0
+  for Intel ME), so the XML stays the primary source. HPIA reports contain the **unmasked serial
+  number and computer name**; the diagnostics export now masks the serial in them and skips
+  HPIA's report .zip.
+
 ## Not yet verified (needs real hardware or an elevated install)
 
 | Item | Why | How to verify |
 |---|---|---|
-| HP Image Assistant scan and install | Needs admin; only simulation has run so far | Install the MSI on an HP PC and click **Check for Updates**. Then check `%ProgramData%\UpdateAllWin\Work\hpia-scan-*` contains an XML/JSON report the parser reads. |
-| HPIA report schema | HP doesn't document it; the parser follows community scripts | Capture a real report and compare it with `HpiaReportParser` |
+| HP Image Assistant install | The scan is verified; installing has not been run yet | **Update All** on an HP PC with updates available, then check history, exit codes and the restart flag |
+| HPIA BIOS / firmware recommendations | The verified scan had no BIOS or firmware items | Scan a PC with an older BIOS and check the BIOS category and approval gate |
 | Dell Command \| Update | No Dell hardware available | Scan, install, `-report` with a folder path, and the exit code `/applyUpdates` returns when nothing applies |
 | Lenovo SU Helper / System Update | No Lenovo hardware available | WMI `Lenovo_Updates` timing after `-scanonly`; the meaning of Severity values |
 | Toast notifications | Not captured on screen | Install the MSI, then trigger restart required in simulation |
-| MSI install / upgrade / uninstall | Not installed on this PC | `msiexec /i`, then upgrade to a higher version, then `msiexec /x` with and without "delete data" |
+| MSI upgrade / uninstall | Install verified; upgrade and uninstall not yet | Upgrade to a higher version, then `msiexec /x` with and without "delete data" |
 | Code signing | Needs your certificate | `build.ps1 -CertificateThumbprint ...` |

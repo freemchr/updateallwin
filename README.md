@@ -25,7 +25,7 @@ install. Nothing else needs choosing.
 
 | Manufacturer | Tool used | How updates install | Status |
 |---|---|---|---|
-| **HP** | HP Image Assistant (downloaded automatically from HP and verified as signed by HP Inc.) | Per SoftPaq (`/SPList`) | PC detection verified on an HP Elite x360 1040 G11. **HP Image Assistant scans and installs not yet run on hardware** (see *Testing*). |
+| **HP** | HP Image Assistant (downloaded automatically from HP and verified as signed by HP Inc.) | Per SoftPaq (`/SPList`) | Scan verified on an HP Elite x360 1040 G11 (HPIA 5.3.7 downloaded, signature checked, 3 updates found). **Installs not yet run on hardware** (see *Testing*). |
 | **Dell** | Dell Command \| Update CLI (installed with winget if missing) | Per category (DCU filters by type, not by single update) | Written to Dell's 5.x CLI reference. **Not tested on Dell hardware.** |
 | **Lenovo** | Commercial Vantage + SU Helper if present, otherwise Lenovo System Update | SU Helper: per category, plus approved BIOS by package ID. System Update: one combined run (it has no silent list mode). | Written to Lenovo CDRT docs. **Not tested on Lenovo hardware.** |
 | **Everyone else** (ASUS, Acer, MSI, Surface…) | Windows Update driver and firmware updates | Per update | Uses the documented Windows Update Agent API. |

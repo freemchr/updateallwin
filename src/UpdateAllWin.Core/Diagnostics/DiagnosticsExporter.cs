@@ -16,10 +16,10 @@ public sealed class DiagnosticsExporter(DataPaths paths, IHistoryStore history, 
         var target = Path.Combine(paths.Exports, $"UpdateAllWin-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
         using var zip = ZipFile.Open(target, ZipArchiveMode.Create);
 
-        AddFolder(zip, paths.Logs, "Logs", TimeSpan.FromDays(14));
-        AddFolder(zip, paths.Work, "Reports", TimeSpan.FromDays(7));
-
         var info = device.GetDeviceInfo();
+        AddFolder(zip, paths.Logs, "Logs", TimeSpan.FromDays(14), info.SerialNumber);
+        AddFolder(zip, paths.Work, "Reports", TimeSpan.FromDays(7), info.SerialNumber);
+
         AddText(zip, "device.json", JsonSerializer.Serialize(info with { SerialNumber = Mask(info.SerialNumber) }, Indented));
         AddText(zip, "policy.json", JsonSerializer.Serialize(policy.Current, Indented));
         AddText(zip, "history.csv", HistoryCsv.Build(history.Query(2000)));
@@ -29,23 +29,32 @@ public sealed class DiagnosticsExporter(DataPaths paths, IHistoryStore history, 
     public static string Mask(string serial) =>
         serial.Length <= 4 ? new string('•', serial.Length) : new string('•', serial.Length - 4) + serial[^4..];
 
-    private static void AddFolder(ZipArchive zip, string folder, string prefix, TimeSpan maxAge)
+    // Vendor reports (e.g. HPIA's XML/HTML) contain the raw serial number, so only text files are
+    // copied, with the serial masked. HPIA's report .zip bundles the same data and is skipped.
+    private static readonly HashSet<string> TextExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".log", ".txt", ".xml", ".json", ".html", ".htm", ".csv" };
+
+    private static void AddFolder(ZipArchive zip, string folder, string prefix, TimeSpan maxAge, string serial)
     {
         if (!Directory.Exists(folder)) return;
         foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
         {
             if (DateTime.Now - File.GetLastWriteTime(file) > maxAge) continue;
+            if (!TextExtensions.Contains(Path.GetExtension(file))) continue;
             var name = Path.Combine(prefix, Path.GetRelativePath(folder, file)).Replace('\\', '/');
             try
             {
                 // Open with sharing so files the logger is writing can still be copied.
                 using var source = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                using var entry = zip.CreateEntry(name, CompressionLevel.Optimal).Open();
-                source.CopyTo(entry);
+                using var reader = new StreamReader(source, detectEncodingFromByteOrderMarks: true);
+                AddText(zip, name, Redact(reader.ReadToEnd(), serial));
             }
             catch (IOException) { }
         }
     }
+
+    public static string Redact(string text, string serial) =>
+        serial.Length < 4 ? text : text.Replace(serial, Mask(serial), StringComparison.OrdinalIgnoreCase);
 
     private static void AddText(ZipArchive zip, string name, string text)
     {

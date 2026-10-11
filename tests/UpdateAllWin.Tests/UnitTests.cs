@@ -181,6 +181,11 @@ public class ParserTests
 
     [Fact]
     public void Serial_is_masked() => Assert.Equal("••••••1234", DiagnosticsExporter.Mask("ABCDEF1234"));
+
+    [Fact]
+    public void Vendor_report_serial_is_masked() =>
+        Assert.Equal("<SerialNumber>••••••1234</SerialNumber>",
+            DiagnosticsExporter.Redact("<SerialNumber>abcdef1234</SerialNumber>", "ABCDEF1234"));
 }
 
 public class IpcTests
