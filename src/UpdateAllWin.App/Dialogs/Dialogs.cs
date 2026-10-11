@@ -107,7 +107,8 @@ public static class AppDialogs
     /// <summary>"What was installed": every update the service tried to install, newest first, grouped by day.</summary>
     public static async Task ShowInstalledAsync(XamlRoot root, IReadOnlyList<HistoryEntry> entries)
     {
-        var panel = new StackPanel { Spacing = 10, MinWidth = 440 };
+        // Right padding keeps the scroll bar clear of the times.
+        var panel = new StackPanel { Spacing = 10, MinWidth = 440, Padding = new Thickness(0, 0, 20, 0) };
         if (entries.Count == 0)
             panel.Children.Add(new TextBlock { Text = "Nothing has been installed yet.", TextWrapping = TextWrapping.Wrap });
 
