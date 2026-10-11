@@ -91,8 +91,23 @@ public sealed partial class ToolbarWindow : Window
         _button.Click += (_, _) => _agent.UpdateAll();
         AutomationHelper.SetName(_button, "Update All");
 
-        var grip = new FontIcon { Glyph = "", FontSize = 12, Opacity = 0.45, VerticalAlignment = VerticalAlignment.Center };
-        ToolTipService.SetToolTip(grip, "Drag to move");
+        // Visible way to hide the bar (the whole bar is draggable, so it doesn't need a grip).
+        // Hiding is remembered; the tray icon menu and Settings bring it back.
+        var hide = new Button
+        {
+            Content = new FontIcon { Glyph = "\uE711", FontSize = 10 },
+            Width = 26,
+            Height = 26,
+            Padding = new Thickness(0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = new SolidColorBrush(Colors.Transparent),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(6),
+            Opacity = 0.7,
+        };
+        hide.Click += (_, _) => _agent.SetToolbarVisible(false);
+        ToolTipService.SetToolTip(hide, "Hide toolbar (show it again from the tray icon or Settings)");
+        AutomationHelper.SetName(hide, "Hide toolbar");
 
         _root = new Grid
         {
@@ -107,10 +122,10 @@ public sealed partial class ToolbarWindow : Window
             },
         };
         Grid.SetColumn(_button, 1);
-        Grid.SetColumn(grip, 2);
+        Grid.SetColumn(hide, 2);
         _root.Children.Add(logo);
         _root.Children.Add(_button);
-        _root.Children.Add(grip);
+        _root.Children.Add(hide);
         _root.ContextFlyout = BuildMenu();
         _root.PointerPressed += OnPointerPressed;
         _root.RequestedTheme = ToElementTheme(UserPreferences.Current.Theme);
