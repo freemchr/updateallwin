@@ -29,4 +29,14 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
+  <!-- dotnet publish of an unpackaged WinUI app omits the app's own resources.pri and compiled XAML
+       (.xbf), so the window fails to load with a XamlParseException. Publish them explicitly. -->
+  <Target Name="PublishAppPriAndXbf" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_AppXamlResource Include="$(OutDir)$(TargetName).pri;$(OutDir)**\*.xbf" />
+      <ResolvedFileToPublish Include="@(_AppXamlResource)"
+                             RelativePath="%(RecursiveDir)%(Filename)%(Extension)"
+                             CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>

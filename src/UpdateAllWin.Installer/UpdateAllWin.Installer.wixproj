@@ -10,6 +10,9 @@
     <!-- PublishDir may arrive as a global property (can't be modified), so normalise into a new one. -->
     <PayloadDir>$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))</PayloadDir>
     <DefineConstants>PublishDir=$(PayloadDir);ProductVersion=$(Version)</DefineConstants>
+    <!-- Known false positives: ICE03 rejects the LCIDs of a few WinUI .mui language files (1152, 1153,
+         1169); ICE38/43/57 assume shortcuts are per-user, but this is a per-machine package. -->
+    <SuppressIces>ICE03;ICE38;ICE43;ICE57</SuppressIces>
     <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\</OutputPath>
     <!-- Not a .NET project: switch off settings inherited from Directory.Build.props. -->
     <ImplicitUsings>disable</ImplicitUsings>

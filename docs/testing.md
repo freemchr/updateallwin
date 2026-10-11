@@ -46,6 +46,11 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
 ## Real HP Image Assistant scan (2026-10-11, same PC, MSI installed, service as SYSTEM)
 
 * `msiexec /i` installed cleanly (exit 0); UpdateAllService started automatically as LocalSystem.
+* **Bug found:** the installed app crashed on launch (XamlParseException in `MainWindow.InitializeComponent`)
+  because `dotnet publish` left out `UpdateAllWin.pri` and the `.xbf` files. Earlier UI tests ran
+  from the build folder, which has them. Fixed with a publish target in the app project, and
+  `build.ps1` now fails if they're missing. Reinstalling the fixed MSI over 1.0.0 replaced the old
+  copy (a single entry in Programs and Features), and the installed app opens and responds.
 * `UpdateAllService.exe scan` downloaded HPIA 5.3.7 from `hpia.hpcloud.hp.com`, verified the
   signer as HP Inc., extracted it and ran `/Operation:Analyze /Action:List`. HPIA exited 0 after
   about 70 seconds; the whole scan took 77 seconds.
@@ -68,5 +73,5 @@ Done with the service in **simulation mode** (nothing installed). Screenshots ar
 | Dell Command \| Update | No Dell hardware available | Scan, install, `-report` with a folder path, and the exit code `/applyUpdates` returns when nothing applies |
 | Lenovo SU Helper / System Update | No Lenovo hardware available | WMI `Lenovo_Updates` timing after `-scanonly`; the meaning of Severity values |
 | Toast notifications | Not captured on screen | Install the MSI, then trigger restart required in simulation |
-| MSI upgrade / uninstall | Install verified; upgrade and uninstall not yet | Upgrade to a higher version, then `msiexec /x` with and without "delete data" |
+| MSI upgrade / uninstall | Install and same-version reinstall verified; version upgrade and uninstall not yet | Upgrade to a higher version, then `msiexec /x` with and without "delete data" |
 | Code signing | Needs your certificate | `build.ps1 -CertificateThumbprint ...` |

@@ -10,7 +10,7 @@
            Compressed="yes">
 
     <SummaryInformation Description="UpdateAll Win - drivers, BIOS and firmware updates from your PC manufacturer" />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of UpdateAll Win is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of UpdateAll Win is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="AppIcon.ico" SourceFile="$(var.PublishDir)Assets\UpdateAllWin.ico" />

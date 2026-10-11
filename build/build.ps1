@@ -34,6 +34,10 @@ if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 # App and service share one folder: both are self-contained .NET 10 x64 with the same runtime files.
 Invoke-Dotnet publish src/UpdateAllWin.App/UpdateAllWin.App.csproj -c $Configuration -p:Platform=x64 -o $publish
 Invoke-Dotnet publish src/UpdateAllWin.Service/UpdateAllWin.Service.csproj -c $Configuration -p:Platform=x64 -o $publish
+# Without these the main window can't load its XAML and the app crashes on launch.
+foreach ($required in 'UpdateAllWin.pri', 'App.xbf', 'MainWindow.xbf', 'Pages\DashboardPage.xbf') {
+    if (-not (Test-Path (Join-Path $publish $required))) { throw "Publish output is missing $required" }
+}
 
 function Sign([string[]]$files) {
     if (-not $CertificateThumbprint) { return }
