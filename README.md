@@ -103,7 +103,7 @@ UpdateAllWin.slnx
 ├─ src/UpdateAllWin.Toolbar             Tray icon, notifications, status monitor
 ├─ src/UpdateAllWin.App                 WinUI 3 app (UpdateAllWin.exe)
 ├─ src/UpdateAllWin.Installer           WiX 5 MSI
-└─ tests/UpdateAllWin.Tests             60 unit + integration tests (mock adapters, real pipes and SQLite)
+└─ tests/UpdateAllWin.Tests             61 unit + integration tests (mock adapters, real pipes and SQLite)
 ```
 
 To add a manufacturer, implement `IManufacturerAdapter` and register it in
